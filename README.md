@@ -195,19 +195,238 @@ title('Root Locus with PID Controller')
  
 A point is selected from the graph above and the step response for the same can be obtained.
 ![image](https://user-images.githubusercontent.com/85870494/223323290-6ca90db2-aca0-408d-883f-e945d8ed0980.png)
-
-
-
-
-
-
-
-
-
 Response: 
  ![image](https://user-images.githubusercontent.com/85870494/223323311-cf91ca1b-eda7-4b83-9266-8f6779f7de77.png)
 
 
+State Feedback Control
+Name: Gayatri Shinde 
+Roll no.: 42
+PRN: 12010267
+Batch: B2 
 
-Conclusion: The PD controller is used for the system. The D factor is used as there are overshoots in the normal system. The integral factor is not used here as there is no further need. In root locus, the integral action is also considered. In all, the PID cascade system gives the best output. 
-Learning Outcomes: The same system can be implemented such as cruise control, etc. The PID action stabilizes the system. 
+Advance Control- State Feedback System for inverted Pendulum
+Implementation of State Space Method to get all the design criteria of the system fulfilled. 
+![image](https://user-images.githubusercontent.com/85870494/223353088-dbb07ddb-c6ec-4599-be11-e03d2b9d5382.png)
+
+1.	Finding open loop poles
+For the system, the open loop poles’ locations are to be find. 
+
+
+poles =
+
+         0
+   -0.1428
+   -5.6041
+    5.5651
+
+One pole with location 5.5651 is in the right side of the s-plane. So, the system is unstable. That is why LQR based controller must be designed for the system. 
+         Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267 
+
+M = 0.5;
+m = 0.2;
+b = 0.1;
+I = 0.006;
+g = 9.8;
+l = 0.3;
+
+p = I*(M+m)+M*m*l^2; %denominator for the A and B matrices
+
+A = [0      1              0           0;
+     0 -(I+m*l^2)*b/p  (m^2*g*l^2)/p   0;
+     0      0              0           1;
+     0 -(m*l*b)/p       m*g*l*(M+m)/p  0];
+B = [     0;
+     (I+m*l^2)/p;
+          0;
+        m*l/p];
+C = [1 0 0 0;
+     0 0 1 0];
+D = [0;
+     0];
+
+states = {'x' 'x_dot' 'phi' 'phi_dot'};
+inputs = {'u'};
+outputs = {'x'; 'phi'};
+
+sys_ss = ss(A,B,C,D,'statename',states,'inputname',inputs,'outputname',outputs);
+
+poles = eig(A)
+
+
+2.	Checking the Controllability
+Before moving towards the LQR method, first we need to verify whether the given system is controllable or not. It simply means that we have to check if the response of the system can be moved along the graph or not. 
+
+controllability =
+
+     4
+
+So, as the controllability is 4 so we can move to the next part.
+
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267 
+co = ctrb(sys_ss);
+controllability = rank(co)
+
+
+3.	Now, we have to move for the LQR method. For this, lqr command is there in MATLAB which returns the value of matrix K. Matrix K is basically the lqr of  A B Q and R where Q and R are the error and control effect of the system. 
+![image](https://user-images.githubusercontent.com/85870494/223353161-3cf0c268-379f-4bc1-866f-4230060a3d0e.png)
+
+ 
+
+The matrix Q is actually  C’* C. 
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+Q = C'*C
+
+![image](https://user-images.githubusercontent.com/85870494/223353202-fd93cef7-0543-4caf-a48f-cb1687fc03d9.png)
+
+ 
+
+The K matrix can be found out with this lqr method. Also, the step response with this method can be found out. 
+
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+Q = C'*C;
+R = 1;
+K = lqr(A,B,Q,R)
+
+Ac = [(A-B*K)];
+Bc = [B];
+Cc = [C];
+Dc = [D];
+
+states = {'x' 'x_dot' 'phi' 'phi_dot'};
+inputs = {'r'};
+outputs = {'x'; 'phi'};
+
+sys_cl = ss(Ac,Bc,Cc,Dc,'statename',states,'inputname',inputs,'outputname',outputs);
+
+t = 0:0.01:5;
+r =0.2*ones(size(t));
+[y,t,x]=lsim(sys_cl,r,t);
+[AX,H1,H2] = plotyy(t,y(:,1),t,y(:,2),'plot');
+set(get(AX(1),'Ylabel'),'String','cart position (m)')
+set(get(AX(2),'Ylabel'),'String','pendulum angle (radians)')
+title('Step Response with LQR Control')
+
+ ![image](https://user-images.githubusercontent.com/85870494/223353260-a46f8e02-508d-48a6-b834-b16118da1443.png)
+
+
+As we can see that the red curve represents the step response of Pendulum’s angle with LQR control and the blue curve represents the step response of Cart position with LQR control. Both the curves show that the overshoot criteria is satisfied but their settling time needs improvement and rise time for the cart’s position need to be improved.  For this the Q (1,1) and Q(3,3) values can be made to 5000 and 100 to get the satisfactory response. 
+
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+Q = C'*C;
+Q(1,1) = 5000;
+Q(3,3) = 100
+R = 1;
+K = lqr(A,B,Q,R)
+
+Ac = [(A-B*K)];
+Bc = [B];
+Cc = [C];
+Dc = [D];
+
+states = {'x' 'x_dot' 'phi' 'phi_dot'};
+inputs = {'r'};
+outputs = {'x'; 'phi'};
+
+sys_cl = ss(Ac,Bc,Cc,Dc,'statename',states,'inputname',inputs,'outputname',outputs);
+
+t = 0:0.01:5;
+r =0.2*ones(size(t));
+[y,t,x]=lsim(sys_cl,r,t);
+[AX,H1,H2] = plotyy(t,y(:,1),t,y(:,2),'plot');
+set(get(AX(1),'Ylabel'),'String','cart position (m)')
+set(get(AX(2),'Ylabel'),'String','pendulum angle (radians)')
+title('Step Response with LQR Control')
+![image](https://user-images.githubusercontent.com/85870494/223353313-3bc4248a-8b97-404e-804d-c57d1a7ac0fe.png)
+
+
+ 
+
+
+These are the values that are obtained after increasing the values of Q and R. 
+ ![image](https://user-images.githubusercontent.com/85870494/223353370-f248eb6a-cd16-43ad-826c-58eeb5820b32.png)
+
+The step response for the same shows that, all the design criteria with resect to the transient time is satisfied.
+
+
+4.	Adding Precompensation:
+Till now, all the transient time criterias are satisfied but the steady state error for the system needs to get reduced. With a full state back controller we can feedback all the states of the system. A new gain N is added to the system after the reference. The value of N can be found out by applying rscale function. 
+
+ 
+![image](https://user-images.githubusercontent.com/85870494/223353416-966f1137-c982-40fe-8c02-6e52e7f57086.png)
+
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+Cn = [1 0 0 0];
+sys_ss = ss(A,B,Cn,0);
+Nbar = rscale(sys_ss,K)
+
+ 
+Code:
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+sys_cl = ss(Ac,Bc*Nbar,Cc,Dc,'statename',states,'inputname',inputs,'outputname',outputs);
+
+t = 0:0.01:5;
+r =0.2*ones(size(t));
+[y,t,x]=lsim(sys_cl,r,t);
+[AX,H1,H2] = plotyy(t,y(:,1),t,y(:,2),'plot');
+set(get(AX(1),'Ylabel'),'String','cart position (m)')
+set(get(AX(2),'Ylabel'),'String','pendulum angle (radians)')
+title('Step Response with Precompensation and LQR Control')
+The step response of the system looks like below. 
+![image](https://user-images.githubusercontent.com/85870494/223353481-c37be18c-69d4-40e2-891e-306b23acf2e6.png)
+
+
+ 
+
+The steady-state error is within the limits, the rise and settle times are met, and the pendulum's overshoot is within range of the design criteria.
+
+5.	Observer-based control
+The state feedback controller is satisfying all the design criteria but was based on the assumptions of full-state feedback. One can also obtain the observer-based control response for the same. 
+
+%Name: Gayatri Shinde
+% Roll no. 42
+% PRN : 12010267  
+Ace = [(A-B*K) (B*K);
+       zeros(size(A)) (A-L*C)];
+Bce = [B*Nbar;
+       zeros(size(B))];
+Cce = [Cc zeros(size(Cc))];
+Dce = [0;0];
+
+states = {'x' 'x_dot' 'phi' 'phi_dot' 'e1' 'e2' 'e3' 'e4'};
+inputs = {'r'};
+outputs = {'x'; 'phi'};
+
+sys_est_cl = ss(Ace,Bce,Cce,Dce,'statename',states,'inputname',inputs,'outputname',outputs);
+
+t = 0:0.01:5;
+r = 0.2*ones(size(t));
+[y,t,x]=lsim(sys_est_cl,r,t);
+[AX,H1,H2] = plotyy(t,y(:,1),t,y(:,2),'plot');
+set(get(AX(1),'Ylabel'),'String','cart position (m)')
+set(get(AX(2),'Ylabel'),'String','pendulum angle (radians)')
+title('Step Response with Observer-Based State-Feedback Control')
+![image](https://user-images.githubusercontent.com/85870494/223353591-172fda8c-3b7c-43fa-a307-3e8d5a571af4.png)
+
+
+
