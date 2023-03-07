@@ -1,0 +1,7 @@
+P_cart = (((I+m*l^2)/q)*s^2 - (m*g*l/q))/(s^4 + (b*(I + m*l^2))*s^3/q - ((M + m)*m*g*l)*s^2/q - b*m*g*l*s/q);
+T2 = feedback(1,P_pend*C)*P_cart;
+t = 0:0.01:5;
+impulse(T2, t);
+title({'Response of Cart Position to an Impulse Disturbance';'under PID Control: Kp = 100, Ki = 1, Kd = 20'});
+
+
